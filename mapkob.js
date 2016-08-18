@@ -50,6 +50,11 @@ mapkob.FillZeroMatrix = function(matrix, states) {
     matrix.matrix[state][states[i + 1]] += 1;
   });
 
+  matrix.stateSpace.map(function(state) {
+    matrix.matrix[undefined][state] = 0;
+  })
+  matrix.matrix.undefined.undefined = 1;
+
   this.matrix = matrix.matrix;
   this.stateSpace = matrix.stateSpace;
   this.states = states;
@@ -120,6 +125,25 @@ mapkob.Matrix.prototype.getRowSum = function(row) {
 
 
 /**
+ * Calculates the cumulative sum for every column of a row
+ *
+ * @param {String} row The name of the state
+ * @returns {Array} an array of length n with the cumulative sums
+ */
+mapkob.Matrix.prototype.getRowCumSum = function(row) {
+  var output = [];
+  var sum = 0;
+  var currentRow = this.getRow(row);
+
+  this.stateSpace.map(function(state) {
+    sum += currentRow[state];
+    output.push(sum);
+  })
+  return output;
+}
+
+
+/**
  * Returns the element of a matrix
  *
  * @param {String} row The row by name to look up
@@ -164,7 +188,34 @@ mapkob.Matrix.prototype.getRowProbabilities = function() {
 
 
 
+
 // Let Special Matrix types inherit generic methods
 mapkob.InitializeZeroMatrix.prototype = new mapkob.Matrix();
 mapkob.FillZeroMatrix.prototype = new mapkob.Matrix();
 mapkob.TransitionMatrix.prototype = new mapkob.Matrix();
+
+
+/**
+ * Generates a sumulated Markov chain
+ * 
+ * @returns {String} A Computer generated string
+ */
+mapkob.TransitionMatrix.prototype.generateChain = function() {
+  var stateI = Math.floor(Math.random() * this.stateSpace.length);
+  var currentState = this.stateSpace[stateI];
+  var output = [];
+
+  while (currentState !== undefined) {
+    output.push(currentState);
+    var cumSums = this.getRowCumSum(currentState);
+    var r = Math.random();
+    for (var col in cumSums) {
+      if (r <= cumSums[col] && (cumSums[col] === undefined || cumSums[col] > r)) {
+        stateI = col;
+        break;
+      }
+    }
+    currentState = this.stateSpace[stateI];
+  }
+  return output.join(" ");
+}
