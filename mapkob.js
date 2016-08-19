@@ -6,7 +6,7 @@ mapkob = Object.create(null);
  *
  * Type can be one of:
  *  - "newline delim": Take a string where sentences are delimited by newlines
- *  - 
+ *  -
  *
  * @param {Object} data The input data
  * @param {String} type The type of input
@@ -35,84 +35,34 @@ mapkob.prepareInput = function(data, type) {
 
 
 /**
- * Initializes a n x n zero matrix for the states
+ * A Row mapkob row constructor
  *
- * @param {Array} stateSpace The state space
- * @returns {Object} A mapkob zero matrix
+ * @param {Object} input A simple object
+ * @returns {Object} A maokob row
  */
-mapkob.InitializeZeroMatrix = function(stateSpace) {
-  var frequencyMatrix = {};
-  var stateObject = {};
-
-  stateSpace.map(function(word) {
-    var stateObject = {};
-    stateSpace.map(function(word) {stateObject[word] = 0;})
-    frequencyMatrix[word] = stateObject;
-  });
-  
-  this.stateSpace = stateSpace;
-  this.matrix = frequencyMatrix;
+mapkob.Row = function(input) {
+  this.row = input;
+  this.stateSpace = Object.keys(input);
   return this;
 }
 
 
-/** 
- * A basic matrix serving as a parent
- *
- * returns {Object} A mapkob matrix object
- */
-mapkob.Matrix = function() {
-  this.matrix = {};
-  this.stateSpace = [];
-  this.type = "mapkob matrix";
-  return this;
-}
-
-
-/**
- * Fills a mapkob zero matrix with the state counts provided
- *
- * @param {Object} matrix A mapkob zero matrix
- * @param {Array} states The states provided
- * @returns {Object} A mapkob frequency matrix
- */
-mapkob.FillZeroMatrix = function(matrix, states) {
-  mapkob.Matrix.call(this);
-
-  states.concat(undefined).map(function(state, i) {
-    matrix.matrix[state][states[i + 1]] += 1;
-  });
-
-  matrix.stateSpace.map(function(state) {
-    matrix.matrix[undefined][state] = 0;
-  })
-  matrix.matrix.undefined.undefined = 1;
-
-  this.matrix = matrix.matrix;
-  this.stateSpace = matrix.stateSpace;
-  this.states = states;
-  this.type = "mapkob zero matrix";
-  return this;
-} 
-
-
-/**
- * Basic constructor for a transition matrix
- *
- * @param {Array} words An Array of words. Sentences are delimited by undefined.
- * @returns {TransitionMatrix} A TransitionMatric object
- */
 mapkob.TransitionMatrix = function(words) {
-  mapkob.Matrix.call(this);
-  var uniqueWords = mapkob.unique(words);
+  var uniqueWords = mapkob.unique(words.concat(undefined));
   this.stateSpace = uniqueWords;
 
-  var zeroMatrix = new mapkob.InitializeZeroMatrix(uniqueWords);
-  var frequencyMatrix = new mapkob.FillZeroMatrix(zeroMatrix, words);
-  
-  
-  this.matrix = frequencyMatrix.getRowProbabilities();
-  this.type = "mapkob frequency matrix";
+  var matrix = {};
+  uniqueWords.map(function(word) {matrix[word] = {};});
+  words.map(function(word, i) {
+    var nextWord = words[i + 1];
+
+    if (matrix[word][nextWord] === undefined) {
+      matrix[word][nextWord] = 1;
+    } else {
+      matrix[word][nextWord] += 1;
+    }
+  })
+  this.matrix = matrix;
   return this;
 }
 
@@ -138,99 +88,86 @@ mapkob.unique = function(input) {
  * @param {String} row The row by name to look up
  * @returns {Object} The row of the matrix
  */
-mapkob.Matrix.prototype.getRow = function(row) {
-  return this.matrix[row];
+mapkob.TransitionMatrix.prototype.getRow = function(row) {
+  var row = new mapkob.Row(this.matrix[row]);
+  return row;
 }
 
 
 /**
- * Returns the sum of a row of a matrix
+ * Calculates the sum of the rows
  *
- * @param {String} row The row by name to look up
- * @returns {Number} The sum of the row's values
+ * @returns {Number} The sum of the values
  */
-mapkob.Matrix.prototype.getRowSum = function(row) {
-  var sum = 0;
-  var currentRow = this.getRow(row);
-  this.stateSpace.map(function(col) {sum += currentRow[col]})  
-  return sum;
-}
-
-
-/**
- * Calculates the cumulative sum for every column of a row
- *
- * @param {String} row The name of the state
- * @returns {Array} an array of length n with the cumulative sums
- */
-mapkob.Matrix.prototype.getRowCumSum = function(row) {
-  var output = [];
-  var sum = 0;
-  var currentRow = this.getRow(row);
-
-  this.stateSpace.map(function(state) {
-    sum += currentRow[state];
-    output.push(sum);
+mapkob.Row.prototype.sum = function() {
+  return this.stateSpace.map(function(state) {
+    return this.row[state];
+  }, this).reduce(function(x, y) {
+    return x + y;
   })
-  return output;
 }
 
 
 /**
- * Returns the element of a matrix
+ * Calculates relative frequencies of a row
  *
- * @param {String} row The row by name to look up
- * @param {String} col The column by name to look up
- * @returns {Number} The value of the element
+ * @returns {Object} A row
  */
-mapkob.Matrix.prototype.getElement = function(row, col) {
-  return this.getRow(row)[col];
+mapkob.Row.prototype.probabilities = function() {
+  var sum = this.sum();
+  var probs = {};
+  this.stateSpace.map(function(state) {probs[state] = this.row[state] / sum}, this);
+  return new mapkob.Row(probs)
 }
 
 
 /**
- * Calculates the probabilities for a row of a frequencyMatrix
+ * A row with the cumulative sums
  *
- * @param{String} row The name of the row
- * @return {Object} A maokob row
+ * @returns {Object} A row
  */
-mapkob.Matrix.prototype.getProbabilitiesForRow = function(row) {
-  var thisRow = this.getRow(row);
-  var stateSpace = this.stateSpace;
-  var sum = this.getRowSum(row);
-  var output = {};
-  stateSpace.map(function(state, i) {output[state] = thisRow[state] / sum})
-  return output;
-}
-
-
-/**
- * Calculates rowwise density, i.e. probabilities
- * Should proably initialize a Matrix
- *
- * @returns {Object} An transition matrix (no mapkob object as of now)
- */
-mapkob.Matrix.prototype.getRowProbabilities = function() {
-  var stateSpace = this.stateSpace;
-  var output = {};
-  stateSpace.map(function(state) {
-    output[state] = this.getProbabilitiesForRow(state);
+mapkob.Row.prototype.cumSum = function() {
+  var sums = {};
+  var sum = 0;
+  this.stateSpace.map(function(state) {
+    sum += this.row[state];
+    sums[state] = sum;
   }, this);
-  return output;
+  return new mapkob.Row(sums);
 }
 
 
-
-
-// Let Special Matrix types inherit generic methods
-mapkob.InitializeZeroMatrix.prototype = new mapkob.Matrix();
-mapkob.FillZeroMatrix.prototype = new mapkob.Matrix();
-mapkob.TransitionMatrix.prototype = new mapkob.Matrix();
+/**
+ * Returns an array with the row's values
+ * 
+ * @returns {Array} The rows values
+ */
+mapkob.Row.prototype.values = function() {
+  return this.stateSpace.map(function(state) {
+    return this.row[state]
+  }, this);
+}
 
 
 /**
- * Generates a sumulated Markov chain
- * 
+ * Picks the state with the largest CDF that is smaller or equal to p
+ * Technically the first one where the next is larger or the array ends
+ *
+ * @returns {String} A state string
+ */
+mapkob.Row.prototype.pickState = function(p) {
+  cdf = this.values();
+  for (var col in cdf) {
+    if (p <= cdf[col] && (cdf[col + 1] == undefined || cdf[col + 1] > p)) {
+      return this.stateSpace[col];
+    }
+  }
+}
+
+
+/**
+ * Generates a Markov chain
+ *
  * @returns {String} A Computer generated string
  */
 mapkob.TransitionMatrix.prototype.generateChain = function() {
@@ -238,17 +175,11 @@ mapkob.TransitionMatrix.prototype.generateChain = function() {
   var currentState = this.stateSpace[stateI];
   var output = [];
 
-  while (currentState !== undefined) {
+  while (currentState !== "undefined" && currentState !== undefined) {
     output.push(currentState);
-    var cumSums = this.getRowCumSum(currentState);
+    var cumSums = this.getRow(currentState).probabilities().cumSum();
     var r = Math.random();
-    for (var col in cumSums) {
-      if (r <= cumSums[col] && (cumSums[col] === undefined || cumSums[col] > r)) {
-        stateI = col;
-        break;
-      }
-    }
-    currentState = this.stateSpace[stateI];
+    currentState = cumSums.pickState(r);
   }
   return output.join(" ");
 }
