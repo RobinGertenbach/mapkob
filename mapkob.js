@@ -2,6 +2,39 @@ mapkob = Object.create(null);
 
 
 /**
+ * Generic function to prepare input for consumption
+ *
+ * Type can be one of:
+ *  - "newline delim": Take a string where sentences are delimited by newlines
+ *  - 
+ *
+ * @param {Object} data The input data
+ * @param {String} type The type of input
+ * @returns {Array} An array of strings, sentences delimited by undefined
+ */
+mapkob.prepareInput = function(data, type) {
+
+  // newline delim
+  var splitRe = new RegExp("([\n\r\.]+)")
+  if (type === "newline delim") {
+    var sentences = data.split(splitRe);
+    var delimited = [];
+    sentences.map(function(sentence, i) {
+      delimited.push(sentence);
+      if (i < sentences.length - 1) {
+        delimited.push(undefined)
+      }
+    });
+
+    return delimited.map(function(sentence) {
+      return sentence === undefined ? [undefined] : sentence.split(" ");
+    }).reduce(function(x,y) {return x.concat(y)})
+  }
+  return
+}
+
+
+/**
  * Initializes a n x n zero matrix for the states
  *
  * @param {Array} stateSpace The state space
