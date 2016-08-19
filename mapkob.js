@@ -13,22 +13,36 @@ mapkob = Object.create(null);
  * @returns {Array} An array of strings, sentences delimited by undefined
  */
 mapkob.prepareInput = function(data, type) {
-
-  // newline delim
-  var splitRe = new RegExp("([\n\r\.]+)")
-  if (type === "newline delim") {
-    var sentences = data.split(splitRe);
+  function splitSentenceArray(a) {
     var delimited = [];
-    sentences.map(function(sentence, i) {
+    a.map(function(sentence, i) {
       delimited.push(sentence);
       if (i < sentences.length - 1) {
         delimited.push(undefined)
       }
     });
+    return delimited
+  }
 
-    return delimited.map(function(sentence) {
+  function flattenSentenceArray(a) {
+    return a.map(function(sentence) {
       return sentence === undefined ? [undefined] : sentence.split(" ");
     }).reduce(function(x,y) {return x.concat(y)})
+  }
+
+  // newline delim
+  var splitRe = new RegExp("([\n\r\.]+)")
+  if (type === "newline delim") {
+    var sentences = data.split(splitRe);
+    var delimited = splitSentenceArray(sentences);
+    return flattenSentenceArray(delimited);
+    
+  }
+
+  // sentence array
+  if (type === "sentence array") {
+    var delimited = splitSentenceArray(sentences);
+    return flattenSentenceArray(delimited);
   }
   return
 }
