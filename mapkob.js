@@ -47,43 +47,7 @@ mapkob.Row = function(input) {
 }
 
 
-/**
- * Initializes a n x n zero matrix for the states
- *
- * @param {Array} stateSpace The state space
- * @returns {Object} A mapkob zero matrix
- */
-mapkob.InitializeZeroMatrix = function(stateSpace) {
-  var frequencyMatrix = {};
-  var stateObject = {};
-
-  stateSpace.map(function(word) {
-    var stateObject = {};
-    stateSpace.map(function(word) {stateObject[word] = 0;})
-    frequencyMatrix[word] = stateObject;
-  });
-
-  this.stateSpace = stateSpace;
-  this.matrix = frequencyMatrix;
-  return this;
-}
-
-
-/**
- * A basic matrix serving as a parent
- *
- * returns {Object} A mapkob matrix object
- */
-mapkob.Matrix = function() {
-  this.matrix = {};
-  this.stateSpace = [];
-  this.type = "mapkob matrix";
-  return this;
-}
-
-
-mapkob.SparseTransitionMatrix = function(words) {
-  mapkob.Matrix.call(this);
+mapkob.TransitionMatrix = function(words) {
   var uniqueWords = mapkob.unique(words.concat(undefined));
   this.stateSpace = uniqueWords;
 
@@ -99,7 +63,6 @@ mapkob.SparseTransitionMatrix = function(words) {
     }
   })
   this.matrix = matrix;
-  this.type = "mapkob frequency matrix";
   return this;
 }
 
@@ -125,57 +88,98 @@ mapkob.unique = function(input) {
  * @param {String} row The row by name to look up
  * @returns {Object} The row of the matrix
  */
-mapkob.Matrix.prototype.getRow = function(row) {
+mapkob.TransitionMatrix.prototype.getRow = function(row) {
   var row = new mapkob.Row(this.matrix[row]);
   return row;
 }
 
 
-
-
-
-
-// Let Special Matrix types inherit generic methods
-mapkob.SparseTransitionMatrix.prototype = new mapkob.Matrix();
+/**
+ * Calculates the sum of the rows
+ *
+ * @returns {Number} The sum of the values
+ */
+mapkob.Row.prototype.sum = function() {
+  return this.stateSpace.map(function(state) {
+    return this.row[state];
+  }, this).reduce(function(x, y) {
+    return x + y;
+  })
+}
 
 
 /**
- * Generates a sumulated Markov chain
+ * Calculates relative frequencies of a row
+ *
+ * @returns {Object} A row
+ */
+mapkob.Row.prototype.probabilities = function() {
+  var sum = this.sum();
+  var probs = {};
+  this.stateSpace.map(function(state) {probs[state] = this.row[state] / sum}, this);
+  return new mapkob.Row(probs)
+}
+
+
+/**
+ * A row with the cumulative sums
+ *
+ * @returns {Object} A row
+ */
+mapkob.Row.prototype.cumSum = function() {
+  var sums = {};
+  var sum = 0;
+  this.stateSpace.map(function(state) {
+    sum += this.row[state];
+    sums[state] = sum;
+  }, this);
+  return new mapkob.Row(sums);
+}
+
+
+/**
+ * Returns an array with the row's values
+ * 
+ * @returns {Array} The rows values
+ */
+mapkob.Row.prototype.values = function() {
+  return this.stateSpace.map(function(state) {
+    return this.row[state]
+  }, this);
+}
+
+
+/**
+ * Picks the state with the largest CDF that is smaller or equal to p
+ * Technically the first one where the next is larger or the array ends
+ *
+ * @returns {String} A state string
+ */
+mapkob.Row.prototype.pickState = function(p) {
+  cdf = this.values();
+  for (var col in cdf) {
+    if (p <= cdf[col] && (cdf[col + 1] == undefined || cdf[col + 1] > p)) {
+      return this.stateSpace[col];
+    }
+  }
+}
+
+
+/**
+ * Generates a Markov chain
  *
  * @returns {String} A Computer generated string
  */
-mapkob.SparseTransitionMatrix.prototype.generateChain = function() {
+mapkob.TransitionMatrix.prototype.generateChain = function() {
   var stateI = Math.floor(Math.random() * this.stateSpace.length);
   var currentState = this.stateSpace[stateI];
   var output = [];
 
   while (currentState !== "undefined" && currentState !== undefined) {
     output.push(currentState);
-    var currentRow = this.getRow(currentState);
-    var rowSum = currentRow.stateSpace.map(function(state) {
-      return currentRow.row[state];
-    }).reduce(function(x, y) {return x + y});
-
-    var probs = currentRow.stateSpace.map(function(state) {
-      return currentRow.row[state] / rowSum;
-    });
-
-    var cumSums = probs.map(function(state, stateI) {
-      var sum = 0;
-      for (var i = 0; i <= stateI; i++) {
-        sum += probs[i];
-      }
-      return sum;
-    })
-
+    var cumSums = this.getRow(currentState).probabilities().cumSum();
     var r = Math.random();
-    for (var col in cumSums) {
-      if (r <= cumSums[col] && (cumSums[col+1] === undefined || cumSums[col+1] > r)) {
-        stateI = col;
-        break;
-      }
-    }
-    currentState = currentRow.stateSpace[stateI];
+    currentState = cumSums.pickState(r);
   }
   return output.join(" ");
 }
