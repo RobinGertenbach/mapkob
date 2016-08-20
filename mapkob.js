@@ -25,18 +25,20 @@ mapkob.prepareInput = function(data, type) {
   }
 
   function flattenSentenceArray(a) {
+    var wordSplitRe = new RegExp("[ \.]+")
     return a.map(function(sentence) {
-      return sentence === undefined ? [undefined] : sentence.split(" ");
+      return sentence === undefined ? [undefined] : sentence.split(wordSplitRe);
     }).reduce(function(x,y) {return x.concat(y)})
   }
 
+
   // newline delim
-  var splitRe = new RegExp("([\n\r\.]+)")
+  var splitRe = new RegExp("[\n\r\.\!\?\t]+")
   if (type === "newline delim") {
     var sentences = data.split(splitRe);
     var delimited = splitSentenceArray(sentences);
     return flattenSentenceArray(delimited);
-    
+
   }
 
   // sentence array
@@ -62,21 +64,42 @@ mapkob.Row = function(input) {
 
 
 mapkob.TransitionMatrix = function(words) {
-  var uniqueWords = mapkob.unique(words.concat(undefined));
-  this.stateSpace = uniqueWords;
-
+  var uniqueWords = [];//mapkob.unique(words.concat(undefined));
   var matrix = {};
-  uniqueWords.map(function(word) {matrix[word] = {};});
-  words.map(function(word, i) {
-    var nextWord = words[i + 1];
+  var starts = {};
 
+  words.map(function(word, i) {
+    // State Space
+    if (uniqueWords.indexOf(word) === -1) {
+      uniqueWords.push(word);
+    }
+
+    // Initial states
+    if (i === 0) {
+      starts[word] = 1;
+    } else if (words[i - 1] === undefined) {
+      if (Object.keys(starts).indexOf(word) === -1) {
+        starts[word] = 1;
+      } else {
+        starts[word] += 1;
+      }
+    }
+
+    var nextWord = words[i + 1];
+    // Transition Matrix rows
+    if (matrix[word] === undefined) {matrix[word] = {};}
+
+    // Transition Matrix columns
     if (matrix[word][nextWord] === undefined) {
       matrix[word][nextWord] = 1;
     } else {
       matrix[word][nextWord] += 1;
     }
   })
+
+  this.stateSpace = uniqueWords;
   this.matrix = matrix;
+  this.initialStates = new mapkob.Row(starts);
   return this;
 }
 
@@ -153,7 +176,7 @@ mapkob.Row.prototype.cumSum = function() {
 
 /**
  * Returns an array with the row's values
- * 
+ *
  * @returns {Array} The rows values
  */
 mapkob.Row.prototype.values = function() {
@@ -185,15 +208,15 @@ mapkob.Row.prototype.pickState = function(p) {
  * @returns {String} A Computer generated string
  */
 mapkob.TransitionMatrix.prototype.generateChain = function() {
-  var stateI = Math.floor(Math.random() * this.stateSpace.length);
-  var currentState = this.stateSpace[stateI];
+  var currentState = this.initialStates.probabilities().cumSum().pickState(Math.random())
+  //var stateI = Math.floor(Math.random() * this.stateSpace.length);
+  //var currentState = this.stateSpace[stateI];
   var output = [];
 
   while (currentState !== "undefined" && currentState !== undefined) {
     output.push(currentState);
     var cumSums = this.getRow(currentState).probabilities().cumSum();
-    var r = Math.random();
-    currentState = cumSums.pickState(r);
+    currentState = cumSums.pickState(Math.random());
   }
   return output.join(" ");
 }
