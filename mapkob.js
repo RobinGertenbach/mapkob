@@ -31,7 +31,6 @@ mapkob.prepareInput = function(data, type) {
     }).reduce(function(x,y) {return x.concat(y)})
   }
 
-
   // newline delim
   var splitRe = new RegExp("[\n\r\.\!\?\t]+")
   if (type === "newline delim") {
@@ -51,61 +50,35 @@ mapkob.prepareInput = function(data, type) {
 
 
 /**
- * A Row mapkob row constructor
+ * Creates and empty Transition matrix
  *
- * @param {Object} input A simple object
- * @returns {Object} A maokob row
+ * @returns {Object} A Transition Matrix object
  */
-mapkob.Row = function(input) {
-  this.row = input;
-  this.stateSpace = Object.keys(input);
-  return this;
-}
-
-
 mapkob.TransitionMatrix = function(words) {
   var uniqueWords = [];
   var matrix = {};
   var starts = {};
 
-  words.map(function(word, i) {
-    // State Space
-    if (uniqueWords.indexOf(word) === -1) {
-      uniqueWords.push(word);
-    }
-
-    // Initial states
-    if (i === 0) {
-      starts[word] = 1;
-    } else if (words[i - 1] === undefined) {
-      if (Object.keys(starts).indexOf(word) === -1) {
-        starts[word] = 1;
-      } else {
-        starts[word] += 1;
-      }
-    }
-
-    var nextWord = words[i + 1];
-    // Transition Matrix rows
-    if (matrix[word] === undefined) {matrix[word] = {};}
-
-    // Transition Matrix columns
-    if (matrix[word][nextWord] === undefined) {
-      matrix[word][nextWord] = 1;
-    } else {
-      matrix[word][nextWord] += 1;
-    }
-  })
-
-  this.stateSpace = uniqueWords;
-  this.matrix = matrix;
-  this.initialStates = new mapkob.Row(starts);
+  this.stateSpace = [];
+  this.matrix = {};
+  this.initialStates = new mapkob.Row();
   return this;
 }
 
 
 /**
+ * functional wrapper around constructor
+ */
+mapkob.transitionMatrix = function(words) {
+  return new mapkob.TransitionMatrix(words);
+}
+
+
+/**
  * Adds training data to an existing model
+ *
+ * @param {Array} words An array of consecutive words. delimited by undefined
+ * @returns {this} The trained model
  */
 mapkob.TransitionMatrix.prototype.update = function(words) {
   // State space
@@ -148,6 +121,46 @@ mapkob.TransitionMatrix.prototype.getRow = function(row) {
   var row = new mapkob.Row(this.matrix[row]);
   return row;
 }
+
+
+/**
+ * Generates a Markov chain
+ *
+ * @returns {String} A Computer generated string
+ */
+mapkob.TransitionMatrix.prototype.generateChain = function() {
+  var currentState = this.initialStates
+                         .probabilities()
+                         .cumSum()
+                         .pickState(Math.random())
+  var output = [];
+
+  while (currentState !== "undefined" && currentState !== undefined) {
+    output.push(currentState);
+    var cumSums = this.getRow(currentState).probabilities().cumSum()
+    currentState = cumSums.pickState(Math.random());
+  }
+  return output.join(" ");
+}
+
+
+/**
+ * A Row mapkob row constructor
+ *
+ * @param {Object} input A simple object
+ * @returns {Object} A maokob row
+ */
+mapkob.Row = function(input) {
+  if (input === undefined) {
+    this.row = {};
+    this.stateSpace = [];
+  } else {
+    this.row = input;
+    this.stateSpace = Object.keys(input);
+  }
+  return this;
+}
+
 
 
 /**
@@ -218,25 +231,4 @@ mapkob.Row.prototype.pickState = function(p) {
       return this.stateSpace[col];
     }
   }
-}
-
-
-/**
- * Generates a Markov chain
- *
- * @returns {String} A Computer generated string
- */
-mapkob.TransitionMatrix.prototype.generateChain = function() {
-  var currentState = this.initialStates
-                         .probabilities()
-                         .cumSum()
-                         .pickState(Math.random())
-  var output = [];
-
-  while (currentState !== "undefined" && currentState !== undefined) {
-    output.push(currentState);
-    var cumSums = this.getRow(currentState).probabilities().cumSum()
-    currentState = cumSums.pickState(Math.random());
-  }
-  return output.join(" ");
 }
