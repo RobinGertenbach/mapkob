@@ -64,7 +64,7 @@ mapkob.Row = function(input) {
 
 
 mapkob.TransitionMatrix = function(words) {
-  var uniqueWords = [];//mapkob.unique(words.concat(undefined));
+  var uniqueWords = [];
   var matrix = {};
   var starts = {};
 
@@ -105,17 +105,36 @@ mapkob.TransitionMatrix = function(words) {
 
 
 /**
- * Returns a list of unique elements
- *
- * @param {Array} input The array of elements
- * @returns {Array} The deduped array
+ * Adds training data to an existing model
  */
-mapkob.unique = function(input) {
-  var output = [];
-  input.map(function(element) {
-    if (output.indexOf(element) === -1) {
-      output.push(element)}});
-  return output;
+mapkob.TransitionMatrix.prototype.update = function(words) {
+  // State space
+  words.map(function(word, i) {
+    if (this.stateSpace.indexOf(word) === -1) {
+      this.stateSpace.push(word);
+    }
+
+    // Initial states
+    if (this.initialStates.row[word] === undefined) {
+      this.initialStates.row[word] = 1;
+      this.initialStates.stateSpace.push(word);
+    } else {
+      this.initialStates.row[word] += 1;
+    }
+
+    // Rows
+    if (this.matrix[word] === undefined) {
+      this.matrix[word] = {};
+    }
+    var nextWord = words[i + 1];
+    // Columns
+    if (this.matrix[word][nextWord] === undefined) {
+      this.matrix[word][nextWord] = 1;
+    } else {
+      this.matrix[word][nextWord] += 1;
+    }
+  }, this)
+  return this;
 }
 
 
@@ -208,14 +227,15 @@ mapkob.Row.prototype.pickState = function(p) {
  * @returns {String} A Computer generated string
  */
 mapkob.TransitionMatrix.prototype.generateChain = function() {
-  var currentState = this.initialStates.probabilities().cumSum().pickState(Math.random())
-  //var stateI = Math.floor(Math.random() * this.stateSpace.length);
-  //var currentState = this.stateSpace[stateI];
+  var currentState = this.initialStates
+                         .probabilities()
+                         .cumSum()
+                         .pickState(Math.random())
   var output = [];
 
   while (currentState !== "undefined" && currentState !== undefined) {
     output.push(currentState);
-    var cumSums = this.getRow(currentState).probabilities().cumSum();
+    var cumSums = this.getRow(currentState).probabilities().cumSum()
     currentState = cumSums.pickState(Math.random());
   }
   return output.join(" ");
