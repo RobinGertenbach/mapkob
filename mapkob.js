@@ -90,10 +90,11 @@ mapkob.TransitionMatrix.prototype.train = function(words) {
     }
 
     // Initial states
-    if (this.initialStates.row[word] === undefined) {
+    if (words[i - 1] === undefined &&
+        this.initialStates.row[word] === undefined) {
       this.initialStates.row[word] = 1;
       this.initialStates.stateSpace.push(word);
-    } else {
+    } else if (words[i - 1] === undefined){
       this.initialStates.row[word] += 1;
     }
 
@@ -131,16 +132,21 @@ mapkob.TransitionMatrix.prototype.getRow = function(row) {
  * @returns {String} A Computer generated string
  */
 mapkob.TransitionMatrix.prototype.generateChain = function() {
-  var currentState = this.initialStates
-                         .probabilities()
-                         .cumSum()
-                         .pickState(Math.random())
+  var currentState = this.
+    initialStates.
+    probabilities().
+    cumSum().
+    pickState(Math.random());
+
   var output = [];
 
   while (currentState !== "undefined" && currentState !== undefined) {
     output.push(currentState);
-    var cumSums = this.getRow(currentState).probabilities().cumSum()
-    currentState = cumSums.pickState(Math.random());
+    currentState = this.
+      getRow(currentState).
+      probabilities().
+      cumSum().
+      pickState(Math.random());
   }
   return output.join(" ");
 }
@@ -162,7 +168,6 @@ mapkob.Row = function(input) {
   }
   return this;
 }
-
 
 
 /**
