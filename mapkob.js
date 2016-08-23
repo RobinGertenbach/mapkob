@@ -54,7 +54,7 @@ mapkob.prepareInput = function(data, type) {
  *
  * @returns {Object} A Transition Matrix object
  */
-mapkob.TransitionMatrix = function(words) {
+mapkob.TransitionMatrix = function() {
   var uniqueWords = [];
   var matrix = {};
   var starts = {};
@@ -70,7 +70,9 @@ mapkob.TransitionMatrix = function(words) {
  * functional wrapper around constructor
  */
 mapkob.transitionMatrix = function(words) {
-  return new mapkob.TransitionMatrix(words);
+  var output =  new mapkob.TransitionMatrix();
+  if (words !== undefined) {output.train(words);}
+  return output;
 }
 
 
@@ -80,7 +82,7 @@ mapkob.transitionMatrix = function(words) {
  * @param {Array} words An array of consecutive words. delimited by undefined
  * @returns {this} The trained model
  */
-mapkob.TransitionMatrix.prototype.update = function(words) {
+mapkob.TransitionMatrix.prototype.train = function(words) {
   // State space
   words.map(function(word, i) {
     if (this.stateSpace.indexOf(word) === -1) {
