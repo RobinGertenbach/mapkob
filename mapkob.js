@@ -68,11 +68,29 @@ mapkob.TransitionMatrix = function() {
 
 /**
  * functional wrapper around constructor
+ * Can train supplied data implicitly or load a JSONified Transition matrix.
+ *
+ * @param {Object} input transition matrix input or a JSONified Matrix
+ * @returns {Object} A Transition Matrix
  */
-mapkob.transitionMatrix = function(words) {
+mapkob.transitionMatrix = function(input) {
   var output =  new mapkob.TransitionMatrix();
-  if (words !== undefined) {output.train(words);}
-  return output;
+
+  try {
+    data = JSON.parse(input);
+    if (data.hasOwnProperty("type") && data.type === "mapkob Transition Matrix") {
+      output.statceSpace = data.initialStates;
+      output.matrix = data.matrix;
+      output.initialStates = new mapkob.Row(data.initialStates.row);
+    }
+  } catch(err) {
+    if (input !== undefined) {
+      output.train(input);
+    }
+  }
+  finally {
+    return output;
+  }
 }
 
 
@@ -149,6 +167,22 @@ mapkob.TransitionMatrix.prototype.generateChain = function() {
       pickState(Math.random());
   }
   return output.join(" ");
+}
+
+
+/**
+ * Transforms a Transitionmatrix into an identifiable object
+ *
+ * @returns {Object} A JSON file
+ */
+mapkob.TransitionMatrix.prototype.toJSON = function() {
+  return JSON.stringify({
+    type: "mapkob Transition Matrix",
+    matrix: this.matrix,
+    stateSpace: this.stateSpace,
+    initialStates: this.initialStates
+  });
+
 }
 
 
