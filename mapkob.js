@@ -16,7 +16,7 @@ mapkob.prepareInput = function(data, type) {
   function splitSentenceArray(a) {
     var delimited = [];
     a.map(function(sentence, i) {
-      delimited.push(sentence);
+      delimited.push(sentence.trim());
       if (i < sentences.length - 1) {
         delimited.push(undefined);
       }
@@ -164,7 +164,7 @@ mapkob.TransitionMatrix.prototype.generateChain = function() {
       cumSum().
       pickState(Math.random());
   }
-  return output.join(" ");
+  return output.join(" ") + ".";
 };
 
 
@@ -180,7 +180,6 @@ mapkob.TransitionMatrix.prototype.toJSON = function() {
     stateSpace: this.stateSpace,
     initialStates: this.initialStates
   });
-
 };
 
 
