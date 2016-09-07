@@ -18,21 +18,21 @@ mapkob.prepareInput = function(data, type) {
     a.map(function(sentence, i) {
       delimited.push(sentence);
       if (i < sentences.length - 1) {
-        delimited.push(undefined)
+        delimited.push(undefined);
       }
     });
-    return delimited
+    return delimited;
   }
 
   function flattenSentenceArray(a) {
-    var wordSplitRe = new RegExp("[ \.]+")
+    var wordSplitRe = new RegExp("[ .]+");
     return a.map(function(sentence) {
       return sentence === undefined ? [undefined] : sentence.split(wordSplitRe);
-    }).reduce(function(x,y) {return x.concat(y)})
+    }).reduce(function(x,y) {return x.concat(y);});
   }
 
   // newline delim
-  var splitRe = new RegExp("[\n\r\.\!\?\t]+")
+  var splitRe = new RegExp("[\n\r.!?\t]+");
   if (type === "newline delim") {
     var sentences = data.split(splitRe);
     var delimited = splitSentenceArray(sentences);
@@ -45,8 +45,8 @@ mapkob.prepareInput = function(data, type) {
     var delimited = splitSentenceArray(sentences);
     return flattenSentenceArray(delimited);
   }
-  return
-}
+  return;
+};
 
 
 /**
@@ -63,7 +63,7 @@ mapkob.TransitionMatrix = function() {
   this.matrix = {};
   this.initialStates = new mapkob.Row();
   return this;
-}
+};
 
 
 /**
@@ -88,10 +88,8 @@ mapkob.transitionMatrix = function(input) {
       output.train(input);
     }
   }
-  finally {
-    return output;
-  }
-}
+  return output;
+};
 
 
 /**
@@ -127,9 +125,9 @@ mapkob.TransitionMatrix.prototype.train = function(words) {
     } else {
       this.matrix[word][nextWord] += 1;
     }
-  }, this)
+  }, this);
   return this;
-}
+};
 
 
 /**
@@ -139,9 +137,9 @@ mapkob.TransitionMatrix.prototype.train = function(words) {
  * @returns {Object} The row of the matrix
  */
 mapkob.TransitionMatrix.prototype.getRow = function(row) {
-  var row = new mapkob.Row(this.matrix[row]);
-  return row;
-}
+  var output = new mapkob.Row(this.matrix[row]);
+  return output;
+};
 
 
 /**
@@ -167,7 +165,7 @@ mapkob.TransitionMatrix.prototype.generateChain = function() {
       pickState(Math.random());
   }
   return output.join(" ");
-}
+};
 
 
 /**
@@ -183,7 +181,7 @@ mapkob.TransitionMatrix.prototype.toJSON = function() {
     initialStates: this.initialStates
   });
 
-}
+};
 
 
 /**
@@ -201,7 +199,7 @@ mapkob.Row = function(input) {
     this.stateSpace = Object.keys(input);
   }
   return this;
-}
+};
 
 
 /**
@@ -214,8 +212,8 @@ mapkob.Row.prototype.sum = function() {
     return this.row[state];
   }, this).reduce(function(x, y) {
     return x + y;
-  })
-}
+  });
+};
 
 
 /**
@@ -226,9 +224,9 @@ mapkob.Row.prototype.sum = function() {
 mapkob.Row.prototype.probabilities = function() {
   var sum = this.sum();
   var probs = {};
-  this.stateSpace.map(function(state) {probs[state] = this.row[state] / sum}, this);
-  return new mapkob.Row(probs)
-}
+  this.stateSpace.map(function(state) {probs[state] = this.row[state] / sum;}, this);
+  return new mapkob.Row(probs);
+};
 
 
 /**
@@ -244,7 +242,7 @@ mapkob.Row.prototype.cumSum = function() {
     sums[state] = sum;
   }, this);
   return new mapkob.Row(sums);
-}
+};
 
 
 /**
@@ -254,9 +252,9 @@ mapkob.Row.prototype.cumSum = function() {
  */
 mapkob.Row.prototype.values = function() {
   return this.stateSpace.map(function(state) {
-    return this.row[state]
+    return this.row[state];
   }, this);
-}
+};
 
 
 /**
@@ -272,4 +270,4 @@ mapkob.Row.prototype.pickState = function(p) {
       return this.stateSpace[col];
     }
   }
-}
+};
