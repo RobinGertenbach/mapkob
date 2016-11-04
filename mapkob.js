@@ -10,7 +10,7 @@ mapkob = Object.create(null);
  *
  * @param {Object} data The input data
  * @param {String} type The type of input
- * @returns {Array} An array of strings, sentences delimited by undefined
+ * @return {Array} An array of strings, sentences delimited by undefined
  */
 mapkob.prepareInput = function(data, type) {
   function splitSentenceArray(a) {
@@ -52,9 +52,11 @@ mapkob.prepareInput = function(data, type) {
 /**
  * Creates and empty Transition matrix
  *
- * @returns {Object} A Transition Matrix object
+ * @param {Number} n An integer specifying which type of n-gram to use
+ * @return {Object} A Transition Matrix object
  */
-mapkob.TransitionMatrix = function() {
+mapkob.TransitionMatrix = function(n) {
+  if (n % 1 !== 0 || n < 2) {throw "n needs to be an integer >= 2";}
   var uniqueWords = [];
   var matrix = {};
   var starts = {};
@@ -62,6 +64,7 @@ mapkob.TransitionMatrix = function() {
   this.stateSpace = [];
   this.matrix = {};
   this.initialStates = new mapkob.Row();
+  this.n = n;
   return this;
 };
 
@@ -70,11 +73,13 @@ mapkob.TransitionMatrix = function() {
  * functional wrapper around constructor
  * Can train supplied data implicitly or load a JSONified Transition matrix.
  *
+ * @param {Number} n An integer specifying which type of n-gram to use
  * @param {Object} input transition matrix input or a JSONified Matrix
- * @returns {Object} A Transition Matrix
+ * @return {Object} A Transition Matrix
  */
-mapkob.transitionMatrix = function(input) {
-  var output =  new mapkob.TransitionMatrix();
+mapkob.transitionMatrix = function(n, input) {
+  n = n || 2;
+  var output =  new mapkob.TransitionMatrix(n);
 
   try {
     data = JSON.parse(input);
@@ -96,7 +101,7 @@ mapkob.transitionMatrix = function(input) {
  * Adds training data to an existing model
  *
  * @param {Array} words An array of consecutive words. delimited by undefined
- * @returns {this} The trained model
+ * @return {this} The trained model
  */
 mapkob.TransitionMatrix.prototype.train = function(words) {
   // State space
@@ -131,10 +136,10 @@ mapkob.TransitionMatrix.prototype.train = function(words) {
 
 
 /**
- * Returns the row of a matrix
+ * return the row of a matrix
  *
  * @param {String} row The row by name to look up
- * @returns {Object} The row of the matrix
+ * @return {Object} The row of the matrix
  */
 mapkob.TransitionMatrix.prototype.getRow = function(row) {
   var output = new mapkob.Row(this.matrix[row]);
@@ -145,7 +150,7 @@ mapkob.TransitionMatrix.prototype.getRow = function(row) {
 /**
  * Generates a Markov chain
  *
- * @returns {String} A Computer generated string
+ * @return {String} A Computer generated string
  */
 mapkob.TransitionMatrix.prototype.generateChain = function() {
   var currentState = this.
@@ -171,7 +176,7 @@ mapkob.TransitionMatrix.prototype.generateChain = function() {
 /**
  * Transforms a Transitionmatrix into an identifiable object
  *
- * @returns {Object} A JSON file
+ * @return {Object} A JSON file
  */
 mapkob.TransitionMatrix.prototype.toJSON = function() {
   return JSON.stringify({
@@ -187,7 +192,7 @@ mapkob.TransitionMatrix.prototype.toJSON = function() {
  * A Row mapkob row constructor
  *
  * @param {Object} input A simple object
- * @returns {Object} A maokob row
+ * @return {Object} A maokob row
  */
 mapkob.Row = function(input) {
   if (input === undefined) {
@@ -204,7 +209,7 @@ mapkob.Row = function(input) {
 /**
  * Calculates the sum of the rows
  *
- * @returns {Number} The sum of the values
+ * @return {Number} The sum of the values
  */
 mapkob.Row.prototype.sum = function() {
   return this.stateSpace.map(function(state) {
@@ -218,7 +223,7 @@ mapkob.Row.prototype.sum = function() {
 /**
  * Calculates relative frequencies of a row
  *
- * @returns {Object} A row
+ * @return {Object} A row
  */
 mapkob.Row.prototype.probabilities = function() {
   var sum = this.sum();
@@ -231,7 +236,7 @@ mapkob.Row.prototype.probabilities = function() {
 /**
  * A row with the cumulative sums
  *
- * @returns {Object} A row
+ * @return {Object} A row
  */
 mapkob.Row.prototype.cumSum = function() {
   var sums = {};
@@ -245,9 +250,9 @@ mapkob.Row.prototype.cumSum = function() {
 
 
 /**
- * Returns an array with the row's values
+ * return an array with the row's values
  *
- * @returns {Array} The rows values
+ * @return {Array} The rows values
  */
 mapkob.Row.prototype.values = function() {
   return this.stateSpace.map(function(state) {
@@ -260,7 +265,7 @@ mapkob.Row.prototype.values = function() {
  * Picks the state with the largest CDF that is smaller or equal to p
  * Technically the first one where the next is larger or the array ends
  *
- * @returns {String} A state string
+ * @return {String} A state string
  */
 mapkob.Row.prototype.pickState = function(p) {
   cdf = this.values();
