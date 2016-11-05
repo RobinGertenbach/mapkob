@@ -6,7 +6,7 @@ mapkob = Object.create(null);
  *
  * Type can be one of:
  *  - "newline delim": Take a string where sentences are delimited by newlines
- *  -
+ *  - "sentence array": Takes an array of sentences.
  *
  * @param {Object} data The input data
  * @param {String} type The type of input
@@ -104,6 +104,15 @@ mapkob.transitionMatrix = function(n, input) {
  * @return {this} The trained model
  */
 mapkob.TransitionMatrix.prototype.train = function(words) {
+  function wordJoin(words, i, n) {
+    var output = [];
+    while (n > 0) {
+      output.push(words[i + n]);
+      n -= 1;
+    }
+    return output.join(" ");
+  }
+
   // State space
   words.map(function(word, i) {
     if (this.stateSpace.indexOf(word) === -1) {
@@ -123,7 +132,7 @@ mapkob.TransitionMatrix.prototype.train = function(words) {
     if (this.matrix[word] === undefined) {
       this.matrix[word] = {};
     }
-    var nextWord = words[i + 1];
+    var nextWord = wordJoin(words, i, this.n - 1);
     // Columns
     if (this.matrix[word][nextWord] === undefined) {
       this.matrix[word][nextWord] = 1;
