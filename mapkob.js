@@ -110,7 +110,8 @@ mapkob.TransitionMatrix.prototype.train = function(words) {
       output.push(words[i + n]);
       n -= 1;
     }
-    return output.join(" ");
+
+    return output.join(" ").replace(/undefined\w+/);
   }
 
   // State space
@@ -169,14 +170,16 @@ mapkob.TransitionMatrix.prototype.generateChain = function() {
     pickState(Math.random());
 
   var output = [];
-
+  console.log(currentState);
   while (currentState !== "undefined" && currentState !== undefined) {
     output.push(currentState);
+    currentState = currentState.split(" ")[this.n - 1];
     currentState = this.
       getRow(currentState).
       probabilities().
       cumSum().
       pickState(Math.random());
+      console.log(currentState);
   }
   return output.join(" ") + ".";
 };
@@ -237,7 +240,9 @@ mapkob.Row.prototype.sum = function() {
 mapkob.Row.prototype.probabilities = function() {
   var sum = this.sum();
   var probs = {};
-  this.stateSpace.map(function(state) {probs[state] = this.row[state] / sum;}, this);
+  this.stateSpace.map(function(state) {
+    probs[state] = this.row[state] / sum;
+  }, this);
   return new mapkob.Row(probs);
 };
 
