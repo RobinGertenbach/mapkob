@@ -5,6 +5,7 @@ mapkob = Object.create(null);
  * Generic function to prepare input for consumption
  *
  * Type can be one of:
+ *  - "plain text": A regular text, sentences are delimited by periods
  *  - "newline delim": Take a string where sentences are delimited by newlines
  *  - "sentence array": Takes an array of sentences.
  *
@@ -30,9 +31,16 @@ mapkob.prepareInput = function(data, type) {
       return sentence === undefined ? [undefined] : sentence.split(wordSplitRe);
     }).reduce(function(x,y) {return x.concat(y);});
   }
+  // plain text
+  var plainTextSplitter = new RegExp("([\.!?]+)", "gm")
+  //var plainTextSplitter = new RegExp("(\.)")
+  if (type === "plain text") {
+    data = data.replace(plainTextSplitter, "\n")
+    type = "newline delim"
+  }
 
   // newline delim
-  var splitRe = new RegExp("[\n\r.!?\t]+");
+  var splitRe = new RegExp("[\n\r]+", "gm");
   if (type === "newline delim") {
     var sentences = data.split(splitRe);
     var delimited = splitSentenceArray(sentences);
@@ -106,12 +114,15 @@ mapkob.transitionMatrix = function(n, input) {
 mapkob.TransitionMatrix.prototype.train = function(words) {
   function wordJoin(words, i, n) {
     var output = [];
-    while (n > 0) {
-      output.push(words[i + n]);
-      n -= 1;
+    var offset = 1;
+    while (n >= offset) {
+      output.push(words[i + offset]);
+      offset += 1;
     }
 
-    return output.join(" ").replace(/undefined\w+/);
+    return output
+        .reduce(function(x,y) {return x + " " + y;})
+        .replace(/undefined[\w, ]+/, "undefined");
   }
 
   // State space
@@ -170,16 +181,15 @@ mapkob.TransitionMatrix.prototype.generateChain = function() {
     pickState(Math.random());
 
   var output = [];
-  console.log(currentState);
   while (currentState !== "undefined" && currentState !== undefined) {
     output.push(currentState);
-    currentState = currentState.split(" ")[this.n - 1];
+    currentNGram = currentState.split(" ")
+    currentState = currentNGram[currentNGram.length - 1];
     currentState = this.
       getRow(currentState).
       probabilities().
       cumSum().
       pickState(Math.random());
-      console.log(currentState);
   }
   return output.join(" ") + ".";
 };
