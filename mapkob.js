@@ -179,12 +179,12 @@ mapkob.TransitionMatrix.prototype.generateChain = function() {
     probabilities().
     cumSum().
     pickState(Math.random());
-
   var output = [];
-  while (currentState !== "undefined" && currentState !== undefined) {
+  while (true) {
     output.push(currentState);
-    currentNGram = currentState.split(" ")
+    currentNGram = currentState.split(" ");
     currentState = currentNGram[currentNGram.length - 1];
+    if (currentState === "undefined") {break;}
     currentState = this.
       getRow(currentState).
       probabilities().
