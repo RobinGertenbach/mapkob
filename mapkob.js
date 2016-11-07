@@ -181,7 +181,7 @@ mapkob.TransitionMatrix.prototype.generateChain = function() {
     pickState(Math.random());
   var output = [];
   while (true) {
-    output.push(currentState);
+    output.push(currentState.replace(/ ?undefined\w*/, ""));
     currentNGram = currentState.split(" ");
     currentState = currentNGram[currentNGram.length - 1];
     if (currentState === "undefined") {break;}
