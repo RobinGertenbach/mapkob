@@ -119,9 +119,8 @@ mapkob.TransitionMatrix.prototype.train = function(words) {
       output.push(words[i + offset]);
       offset += 1;
     }
-
     return output
-        .reduce(function(x,y) {return x + " " + y;})
+        .reduce(function(x,y) {return x + " " + y;}, "")
         .replace(/undefined[\w, ]+/, "undefined");
   }
 
@@ -139,7 +138,6 @@ mapkob.TransitionMatrix.prototype.train = function(words) {
     } else if (words[i - 1] === undefined){
       this.initialStates.row[word] += 1;
     }
-
     // Rows
     if (this.matrix[word] === undefined) {
       this.matrix[word] = {};
@@ -180,11 +178,13 @@ mapkob.TransitionMatrix.prototype.generateChain = function() {
     cumSum().
     pickState(Math.random());
   var output = [];
-  while (true) {
+  console.log(currentState)
+  while (currentState !== "undefined") {
+    console.log("Current output:" +output + "   current state: " + currentState)
     output.push(currentState.replace(/ ?undefined\w*/, ""));
     currentNGram = currentState.split(" ");
     currentState = currentNGram[currentNGram.length - 1];
-    if (currentState === "undefined") {break;}
+    if (currentState === "undefined" || currentState === undefined) {break;}
     currentState = this.
       getRow(currentState).
       probabilities().
@@ -238,7 +238,7 @@ mapkob.Row.prototype.sum = function() {
     return this.row[state];
   }, this).reduce(function(x, y) {
     return x + y;
-  });
+  }, 0);
 };
 
 
